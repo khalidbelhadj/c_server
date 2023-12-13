@@ -63,8 +63,6 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
-  printf("here\n");
-
   if (server_add_route(server, "/hello", HTTP_GET, &hello) < 0) {
     fprintf(stderr, "[ERROR] Could not add route /hello to server\n");
     exit(1);
