@@ -51,12 +51,12 @@ int main(int argc, char **argv) {
   }
 
   if (server_add_route(server, "/", HTTP_GET, &home) < 0) {
-    fprintf(stderr, "[ERROR] Could not add route /hello to server\n");
+    fprintf(stderr, "[ERROR] Could not add route / to server\n");
     exit(1);
   }
 
   if (server_add_route(server, "/clicked", HTTP_GET, &clicked) < 0) {
-    fprintf(stderr, "[ERROR] Could not add route /hello to server\n");
+    fprintf(stderr, "[ERROR] Could not add route /clicked to server\n");
     exit(1);
   }
 
