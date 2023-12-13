@@ -1,13 +1,24 @@
 #include "server.h"
+
 #include <string.h>
 
-server *current_server = {0};
+server *current_server = NULL;
 
 int server_init(server *server, int port) {
+  current_server = server;
+
   // Creating the socket
   int sock = socket(AF_INET, SOCK_STREAM, 0);
   if (sock < 0) {
     return -1;
+  }
+
+  // Set SO_REUSEADDR option to allow reuse of local address
+  int reuseaddr = 1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
+      perror("Error setting SO_REUSEADDR option");
+      close(sock);
+      return -1;
   }
 
   // Creating socket address
@@ -42,7 +53,8 @@ http_response _server_get_response(server server, http_request request_buffer) {
   route *current = server.routes;
 
   while (current != NULL) {
-    if (strcmp(current->path, request_buffer.path) == 0 && current->method == request_buffer.method) {
+    if (strcmp(current->path, request_buffer.path) == 0 &&
+        current->method == request_buffer.method) {
       response = current->function();
       break;
     }
@@ -58,13 +70,10 @@ http_response _server_get_response(server server, http_request request_buffer) {
   return response;
 }
 void _server_sigint_handler(int signo) {
-  switch (signo) {
-  case SIGINT:
-    printf("[INFO] SIGINT recieved\n");
-    printf("[INFO] Closing server\n");
-    close(current_server->socket);
-    exit(0);
-  }
+  (void)signo;
+  printf("[INFO] Closing server\n");
+  close(current_server->socket);
+  exit(0);
 }
 
 int server_start(server server) {
@@ -103,11 +112,11 @@ int server_start(server server) {
       int write_result =
           send(other_sock, response_buffer, strlen(response_buffer), 0);
 
+      close(other_sock);
+
       if (write_result < 0) {
         return -1;
       }
-
-      close(other_sock);
 
       memset(request_buffer, 0, BUFFER_LEN + 1);
       memset(response_buffer, 0, BUFFER_LEN + 1);
@@ -118,7 +127,8 @@ int server_start(server server) {
   return 0;
 }
 
-int server_add_route(server *server, const char *path, http_method method, http_response (*function)(void)) {
+int server_add_route(server *server, const char *path, http_method method,
+                     http_response (*function)(void)) {
   route *new_route = calloc(1, sizeof(route));
 
   if (new_route == NULL) {
