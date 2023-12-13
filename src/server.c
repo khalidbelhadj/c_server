@@ -4,8 +4,8 @@
 
 server *current_server = NULL;
 
-int server_init(server *server, int port) {
-  current_server = server;
+int server_init(server *serv, int port) {
+  current_server = serv;
 
   // Creating the socket
   int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -15,10 +15,11 @@ int server_init(server *server, int port) {
 
   // Set SO_REUSEADDR option to allow reuse of local address
   int reuseaddr = 1;
-  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr, sizeof(reuseaddr)) == -1) {
-      perror("Error setting SO_REUSEADDR option");
-      close(sock);
-      return -1;
+  if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuseaddr,
+                 sizeof(reuseaddr)) == -1) {
+    perror("Error setting SO_REUSEADDR option");
+    close(sock);
+    return -1;
   }
 
   // Creating socket address
@@ -41,9 +42,11 @@ int server_init(server *server, int port) {
   }
   printf("[INFO] Server listening on port %d\n", port);
 
-  server->port = port;
-  server->routes = NULL;
-  server->socket = sock;
+  *serv = (server){
+    .port = port,
+    .routes = NULL,
+    .socket = sock
+  };
 
   return 0;
 }
@@ -62,13 +65,16 @@ http_response _server_get_response(server server, http_request request_buffer) {
   }
 
   if (response.status == 0) {
-    response.status = 404;
-    response.content_type = "text/plain";
-    response.body = "404 Not Found";
+    response = (http_response){
+        .status = 404,
+        .content_type = "text/plain",
+        .body = "404 Not Found",
+    };
   }
 
   return response;
 }
+
 void _server_sigint_handler(int signo) {
   (void)signo;
   printf("[INFO] Closing server\n");
