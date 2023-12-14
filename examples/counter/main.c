@@ -8,8 +8,7 @@ void home(http_response *response) {
   fread(response->body, 1, HTTP_RES_BODY_SIZE, fp);
   fclose(fp);
 
-  response->status = 200,
-  response->content_type = "text/html";
+  response->status = 200, response->content_type = "text/html";
 }
 
 void clicked(http_response *response) {
@@ -18,7 +17,7 @@ void clicked(http_response *response) {
 
   sprintf(response->body,
           "<div>"
-            "Clicked %d times"
+          "Clicked %d times"
           "</div>",
           counter);
 

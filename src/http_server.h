@@ -29,7 +29,8 @@ http_server *http_server_new(void);
 void http_server_free(http_server *server);
 int http_server_init(http_server *server, int port);
 int http_server_start(http_server server);
-int http_server_add_route(http_server *server, const char *path, http_method method,
-                     void (*function)(http_response *));
+int http_server_add_route(http_server *server, const char *path,
+                          http_method method,
+                          void (*function)(http_response *));
 
 #endif  // SERVER_H

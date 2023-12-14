@@ -9,7 +9,6 @@ http_server *current_server = NULL;
 
 http_server *http_server_new(void) {
   return (http_server *)calloc(1, sizeof(http_server));
-  ;
 }
 
 void http_server_free(http_server *server) {

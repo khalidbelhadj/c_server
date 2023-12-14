@@ -7,8 +7,7 @@ void hello(http_response *response) {
   fread(response->body, 1, HTTP_RES_BODY_SIZE, fp);
   fclose(fp);
 
-  response->status = 200,
-  response->content_type = "text/html";
+  response->status = 200, response->content_type = "text/html";
 }
 
 void bye(http_response *response) {
@@ -16,8 +15,7 @@ void bye(http_response *response) {
   fread(response->body, 1, HTTP_RES_BODY_SIZE, fp);
   fclose(fp);
 
-  response->status = 200,
-  response->content_type = "text/html";
+  response->status = 200, response->content_type = "text/html";
 }
 
 void home(http_response *response) {
@@ -25,8 +23,7 @@ void home(http_response *response) {
   fread(response->body, 1, HTTP_RES_BODY_SIZE, fp);
   fclose(fp);
 
-  response->status = 200,
-  response->content_type = "text/html";
+  response->status = 200, response->content_type = "text/html";
 }
 
 int main(int argc, char **argv) {
