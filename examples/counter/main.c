@@ -1,36 +1,30 @@
 #include <errno.h>
+#include <stdlib.h>
 
-#include "../../src/server.h"
+#include "../../src/http_server.h"
 
-http_response home(void) {
+void home(http_response *response) {
   FILE *fp = fopen("index.html", "r");
-  char *file_content = calloc(1, 100000);
-  fread(file_content, 1, 100000, fp);
+  fread(response->body, 1, HTTP_RES_BODY_SIZE, fp);
   fclose(fp);
 
-  http_response response = {
-      .status = 200,
-      .content_type = "text/html",
-      .body = file_content,
-  };
-  return response;
+  response->status = 200,
+  response->content_type = "text/html";
 }
 
-http_response clicked(void) {
+void clicked(http_response *response) {
   static int counter = 0;
   counter++;
 
-  char body[100];
-  sprintf(body, "<div>Clicked %d times</div>", counter);
+  sprintf(response->body,
+          "<div>"
+            "Clicked %d times"
+          "</div>",
+          counter);
 
-  http_response response = {
-      .status = 200,
-      .content_type = "text/html",
-      .body = body,
-  };
-  return response;
+  response->status = 200;
+  response->content_type = "text/html";
 }
-
 
 int main(int argc, char **argv) {
   if (argc != 2) {
@@ -43,28 +37,29 @@ int main(int argc, char **argv) {
   char *end;
   int port = strtod(argv[1], &end);
 
-  server *server = calloc(1, sizeof(server));
-  if (server_init(server, port) < 0) {
+  http_server *server = http_server_new();
+  if (http_server_init(server, port) < 0) {
     fprintf(stderr, "[ERROR] Could not initialise server: %s\n",
             strerror(errno));
     exit(1);
   }
 
-  if (server_add_route(server, "/", HTTP_GET, &home) < 0) {
+  if (http_server_add_route(server, "/", HTTP_GET, &home) < 0) {
     fprintf(stderr, "[ERROR] Could not add route / to server\n");
     exit(1);
   }
 
-  if (server_add_route(server, "/clicked", HTTP_GET, &clicked) < 0) {
+  if (http_server_add_route(server, "/clicked", HTTP_GET, &clicked) < 0) {
     fprintf(stderr, "[ERROR] Could not add route /clicked to server\n");
     exit(1);
   }
 
-  if (server_start(*server) < 0) {
+  if (http_server_start(*server) < 0) {
     fprintf(stderr, "[ERROR] Server did not terminate properly: %s\n",
             strerror(errno));
     exit(1);
   }
 
+  http_server_free(server);
   return 0;
 }

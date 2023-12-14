@@ -1,8 +1,19 @@
 #include "http.h"
 #include <string.h>
 
+http_response *http_response_new(void) {
+  http_response *response = calloc(1, sizeof(http_response));
+  response->body = calloc(1, sizeof(char) * HTTP_RES_BODY_SIZE);
+  return response;
+}
+
+void http_response_free(http_response *response) {
+  free(response->body);
+  free(response);
+}
+
 void http_response_to_string(char *dst, http_response response) {
-  snprintf(dst, 1000, HTTP_VERSION" %d OK\nContent-Type: %s\n\r\n\r\n%s", response.status, response.content_type, response.body);
+  snprintf(dst, 1000, HTTP_VERSION" %d OK\nContent-Type: %s\n\r\n\r\n %s", response.status, response.content_type, response.body);
 }
 
 http_request http_request_from_string(char *request) {
@@ -22,12 +33,12 @@ http_request http_request_from_string(char *request) {
   char *path = strtok(NULL, " ");
   req.path = path;
 
-  char *version = strtok(NULL, " ");
+  char *version = strtok(NULL, "\r\n\r\n");
   req.version = version;
 
   return req;
 }
 
 void http_request_to_string(char *dst, http_request request) {
-  snprintf(dst, 1000, "method: %s\npath: %s\nversion: %s\n", request.method == HTTP_GET ? "GET" : "POST", request.path, request.version);
+  sprintf(dst, "{ method: %s, path: %s, version: %s }", request.method == HTTP_GET ? "GET" : "POST", request.path, request.version);
 }

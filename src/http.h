@@ -5,6 +5,7 @@
 #include <stdlib.h>
 
 #define HTTP_VERSION "HTTP/1.0"
+#define HTTP_RES_BODY_SIZE 1024
 
 typedef enum {
   HTTP_GET,
@@ -30,6 +31,8 @@ typedef struct {
   http_header *headers;
 } http_request;
 
+http_response *http_response_new(void);
+void http_response_free(http_response *response);
 void http_response_to_string(char *dst, http_response response);
 http_request http_request_from_string(char *request);
 void http_request_to_string(char *dst, http_request request);

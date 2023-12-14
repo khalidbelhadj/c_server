@@ -15,7 +15,7 @@
 typedef struct route {
   const char *path;
   http_method method;
-  http_response (*function)(void);
+  void (*function)(http_response *);
   struct route *next;
 } route;
 
@@ -23,11 +23,13 @@ typedef struct {
   int port;
   int socket;
   route *routes;
-} server;
+} http_server;
 
-int server_init(server *server, int port);
-int server_start(server server);
-int server_add_route(server *server, const char *path, http_method method,
-                     http_response (*function)(void));
+http_server *http_server_new(void);
+void http_server_free(http_server *server);
+int http_server_init(http_server *server, int port);
+int http_server_start(http_server server);
+int http_server_add_route(http_server *server, const char *path, http_method method,
+                     void (*function)(http_response *));
 
 #endif  // SERVER_H

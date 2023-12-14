@@ -1,11 +1,32 @@
-#include "server.h"
+#include "http_server.h"
 
+#include <stdlib.h>
 #include <string.h>
 
-server *current_server = NULL;
+#include "http.h"
 
-int server_init(server *serv, int port) {
-  current_server = serv;
+http_server *current_server = NULL;
+
+http_server *http_server_new(void) {
+  return (http_server *)calloc(1, sizeof(http_server));
+  ;
+}
+
+void http_server_free(http_server *server) {
+  route *current = server->routes;
+  route *next = NULL;
+
+  while (current != NULL) {
+    next = current->next;
+    free(current);
+    current = next;
+  }
+
+  free(server);
+}
+
+int http_server_init(http_server *server, int port) {
+  current_server = server;
 
   // Creating the socket
   int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -42,55 +63,47 @@ int server_init(server *serv, int port) {
   }
   printf("[INFO] Server listening on port %d\n", port);
 
-  *serv = (server){
-    .port = port,
-    .routes = NULL,
-    .socket = sock
-  };
+  *server = (http_server){.port = port, .routes = NULL, .socket = sock};
 
   return 0;
 }
 
-http_response _server_get_response(server server, http_request request_buffer) {
-  http_response response = {0};
+void _http_server_get_response(http_server server, http_request request_buffer,
+                               http_response *response) {
   route *current = server.routes;
 
   while (current != NULL) {
     if (strcmp(current->path, request_buffer.path) == 0 &&
         current->method == request_buffer.method) {
-      response = current->function();
+      current->function(response);
       break;
     }
     current = current->next;
   }
 
-  if (response.status == 0) {
-    response = (http_response){
-        .status = 404,
-        .content_type = "text/plain",
-        .body = "404 Not Found",
-    };
+  if (response->status == 0) {
+    response->status = 404;
+    response->content_type = "text/plain";
+    strcpy(response->body, "404 Not Found");
   }
-
-  return response;
 }
 
-void _server_sigint_handler(int signo) {
+void _http_server_sigint_handler(int signo) {
   (void)signo;
   printf("[INFO] Closing server\n");
   close(current_server->socket);
   exit(0);
 }
 
-int server_start(server server) {
+int http_server_start(http_server server) {
   current_server = &server;
 
-  if (signal(SIGINT, _server_sigint_handler) == SIG_ERR) {
+  if (signal(SIGINT, _http_server_sigint_handler) == SIG_ERR) {
     perror("Error setting up signal handler");
     exit(EXIT_FAILURE);
   }
 
-  printf("[INFO] Server started\n");
+  printf("[INFO] Server started on http://localhost:%d\n", server.port);
 
   // Reading messages
   char request_buffer[BUFFER_LEN + 1];
@@ -108,12 +121,14 @@ int server_start(server server) {
     while ((n = read(other_sock, request_buffer, BUFFER_LEN - 2)) > 0) {
       http_request request = http_request_from_string(request_buffer);
 
-      char request_str[BUFFER_LEN + 1];
+      char request_str[BUFFER_LEN + 1] = {0};
       http_request_to_string(request_str, request);
-      printf("[INFO] Recieved request:\n%s\n", request_str);
+      printf("[INFO] Recieved request: %s\n", request_str);
 
-      http_response response = _server_get_response(server, request);
-      http_response_to_string(response_buffer, response);
+      http_response *response = http_response_new();
+      _http_server_get_response(server, request, response);
+      http_response_to_string(response_buffer, *response);
+      http_response_free(response);
 
       int write_result =
           send(other_sock, response_buffer, strlen(response_buffer), 0);
@@ -133,8 +148,9 @@ int server_start(server server) {
   return 0;
 }
 
-int server_add_route(server *server, const char *path, http_method method,
-                     http_response (*function)(void)) {
+int http_server_add_route(http_server *server, const char *path,
+                          http_method method,
+                          void (*function)(http_response *)) {
   route *new_route = calloc(1, sizeof(route));
 
   if (new_route == NULL) {
