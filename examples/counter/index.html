@@ -12,13 +12,15 @@
     <h1>Counter</h1>
     <script src="https://unpkg.com/htmx.org@1.9.9"></script>
 
-    <button hx-get="/clicked" hx-swap="innerHTML" hx-target="#counter">
+    <button hx-get="/increment" hx-swap="innerHTML" hx-target="#counter">
       Increment
     </button>
 
-    <div id="counter">
-        null
-    </div>
+    <div id="counter" hx-trigger="load" hx-get="/get-counter"></div>
+
+    <button hx-get="/decrement" hx-swap="innerHTML" hx-target="#counter">
+      Decrement
+    </button>
 </body>
 
 </html>
