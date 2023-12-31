@@ -11,5 +11,8 @@ $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 build/libserver.a: $(OBJ_FILES)
 	ar -rcs $@ $^
 
+fmt:
+	clang-format **/*.c **/*.h -i
+
 clean:
-	rm -f $(BUILD_DIR)/*.o build/libserver.a
+	rm -f $(BUILD_DIR)/*.o build/libhttpserver.a

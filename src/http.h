@@ -4,12 +4,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+// No explicit support for any HTTP standard yet
 #define HTTP_VERSION "HTTP/1.0"
 #define HTTP_RES_BODY_SIZE 1024
 
 typedef enum {
   HTTP_GET,
   HTTP_POST,
+  // HTTP_HEAD,
+  // HTTP_PUT,
+  // HTTP_DELETE,
+  // HTTP_CONNECT,
+  // HTTP_OPTIONS,
+  // HTTP_TRACE,
+  // HTTP_PATCH
 } http_method;
 
 typedef struct {
@@ -33,8 +41,8 @@ typedef struct {
 
 http_response *http_response_new(void);
 void http_response_free(http_response *response);
-void http_response_to_string(char *dst, http_response response);
-http_request http_request_from_string(char *request);
-void http_request_to_string(char *dst, http_request request);
+void http_response_stringify(char *dst, http_response response);
+http_request http_request_parse(char *request);
+void http_request_stringify(char *dst, http_request request);
 
 #endif  // HTTP_H

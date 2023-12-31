@@ -118,15 +118,15 @@ int http_server_start(http_server server) {
     other_sock = accept(server.socket, (struct sockaddr *)NULL, NULL);
 
     while ((n = read(other_sock, request_buffer, BUFFER_LEN - 2)) > 0) {
-      http_request request = http_request_from_string(request_buffer);
+      http_request request = http_request_parse(request_buffer);
 
       char request_str[BUFFER_LEN + 1] = {0};
-      http_request_to_string(request_str, request);
+      http_request_stringify(request_str, request);
       printf("[INFO] Recieved request: %s\n", request_str);
 
       http_response *response = http_response_new();
       _http_server_get_response(server, request, response);
-      http_response_to_string(response_buffer, *response);
+      http_response_stringify(response_buffer, *response);
       http_response_free(response);
 
       int write_result =

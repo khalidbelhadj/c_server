@@ -10,7 +10,7 @@
 
 #include "http.h"
 
-#define BUFFER_LEN 1000
+#define BUFFER_LEN 1024
 
 typedef struct route {
   const char *path;
