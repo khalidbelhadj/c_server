@@ -2,25 +2,26 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>website</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>website</title>
 </head>
 
 <body>
-    <h1>Counter</h1>
-    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
+  <h1>Counter</h1>
+  <script src="https://unpkg.com/htmx.org@1.9.9"></script>
 
-    <button hx-get="/increment" hx-swap="innerHTML" hx-target="#counter">
-      Increment
-    </button>
+  <button hx-get="/increment" hx-swap="innerHTML" hx-target="#counter">
+    Increment
+  </button>
 
-    <div id="counter" hx-trigger="load" hx-get="/get-counter"></div>
+  <div id="counter" hx-trigger="load" hx-get="/get-counter"></div>
 
-    <button hx-get="/decrement" hx-swap="innerHTML" hx-target="#counter">
-      Decrement
-    </button>
+  <button hx-get="/decrement" hx-swap="innerHTML" hx-target="#counter">
+    Decrement
+  </button>
+
 </body>
 
 </html>

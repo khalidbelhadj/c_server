@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>website</title>
+</head>
+
+<body>
+    <h1>Chat</h1>
+    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
+
+    <form hx-get="/new-chat" hx-target="#chat-list" hx-swap="innerHTML">
+        <input type="text" name="chat-input" placeholder="Send a chat...">
+
+        <button type="submit">Send</button>
+    </form>
+
+    <div id="chat-list" hx-swap="innerHTML" hx-trigger="load" hx-get="/get-chats">
+    </div>
+
+    <style>
+        * {
+            font-family: monospace;
+        }
+
+        .chat {
+            border-radius: 5px;
+            padding: 1rem;
+            background-color: #f0f0f0;
+        }
+    </style>
+</body>
+
+</html>
