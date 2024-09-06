@@ -10,15 +10,15 @@
 
 <body>
     <h1>Chat</h1>
-    <script src="https://unpkg.com/htmx.org@1.9.9"></script>
+    <a href="/username" id="u"></a>
 
-    <form hx-get="/new-chat" hx-target="#chat-list" hx-swap="innerHTML">
+    <form>
         <input type="text" name="chat-input" placeholder="Send a chat...">
 
         <button type="submit">Send</button>
     </form>
 
-    <div id="chat-list" hx-swap="innerHTML" hx-trigger="load" hx-get="/get-chats">
+    <div id="chat-list">
     </div>
 
     <style>
@@ -31,7 +31,55 @@
             padding: 1rem;
             background-color: #f0f0f0;
         }
+
+        #chat-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
     </style>
+
+    <script>
+        const username = localStorage.getItem("username");
+        if (!username) {
+            (window.location.origin + "/username");
+            window.location.replace(window.location.origin + "/username");
+        }
+
+        document.getElementById("u").innerText = username;
+
+        const form = document.querySelector("form");
+        const chatList = document.querySelector("#chat-list");
+        const input = document.querySelector("#chat-input");
+
+        const renderChats = () => {
+            fetch(window.location.origin + "/get-chats").then(res => res.text()).then(t => {
+                chatList.innerHTML = '';
+                for (const chat of t.split("\n").filter(c => c !== '\r' && c !== '' && c !== ' ')) {
+                    const chatElem = document.createElement("div");
+                    chatElem.innerText = chat;
+                    chatElem.classList.add("chat");
+                    chatList.appendChild(chatElem);
+                }
+            });
+        };
+
+        renderChats();
+
+        form.onsubmit = e => {
+            e.preventDefault();
+            const data = new FormData(form);
+            fetch(window.location.origin + "/new-chat", {
+                method: "POST",
+                body: username + ": " + data.get("chat-input")
+            });
+
+            renderChats();
+            form.reset();
+        };
+
+        setInterval(renderChats, 2000)
+    </script>
 </body>
 
 </html>

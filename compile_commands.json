@@ -1,0 +1,28 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-I./lib/c_utils/include/",
+      "-c",
+      "-o",
+      "build/http.o",
+      "src/http.c"
+    ],
+    "directory": "/Users/khalid/Developer/cerve",
+    "file": "/Users/khalid/Developer/cerve/src/http.c",
+    "output": "/Users/khalid/Developer/cerve/build/http.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/cc",
+      "-I./lib/c_utils/include/",
+      "-c",
+      "-o",
+      "build/http_server.o",
+      "src/http_server.c"
+    ],
+    "directory": "/Users/khalid/Developer/cerve",
+    "file": "/Users/khalid/Developer/cerve/src/http_server.c",
+    "output": "/Users/khalid/Developer/cerve/build/http_server.o"
+  }
+]

@@ -10,7 +10,7 @@
 
 #include "http.h"
 
-#define BUFFER_LEN 2024
+#define BUFFER_LEN (1 << 11)
 
 typedef struct route {
     const char *path;
@@ -20,17 +20,23 @@ typedef struct route {
 } route;
 
 typedef struct {
-    int port;
-    int server_fd;
+    size_t port;
+    size_t server_fd;
     route *routes;
-    char *base;
+    Arena _arena;
 } http_server;
 
+typedef struct {
+    int client_fd;
+    http_server server;
+} thread_args;
+
+http_server http_server_new(size_t port, int *error);
 void http_server_free(http_server server);
-int http_server_init(http_server *server, int port);
-int http_server_start(http_server server);
 int http_server_add_route(http_server *server, const char *path,
                           http_method method,
                           void (*handler)(Arena *, http_req, http_res *));
+
+int http_server_start(http_server server);
 
 #endif // SERVER_H

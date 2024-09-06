@@ -1,28 +1,25 @@
 #include "http_server.h"
 
+#include "arena.h"
 #include "http.h"
 #include <pthread.h>
+#include <stdio.h>
 
-http_server *current_server = NULL;
+// TODO: Figure out a better way to pass server fd to signal handler
+http_server current_server = {0};
 
-void http_server_free(http_server server) {
-    route *current = server.routes;
-    route *next = NULL;
+// -----------
+// Init/deinit
+// -----------
 
-    while (current != NULL) {
-        next = current->next;
-        free(current);
-        current = next;
-    }
-}
-
-int http_server_init(http_server *server, int port) {
-    current_server = server;
+http_server http_server_new(size_t port, int *error) {
+    http_server server = {0};
 
     // Creating the socket
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     if (sock < 0) {
-        return -1;
+        *error = 1;
+        return server;
     }
 
     // Set SO_REUSEADDR option to allow reuse of local address
@@ -31,7 +28,8 @@ int http_server_init(http_server *server, int port) {
                    sizeof(reuseaddr)) == -1) {
         perror("Error setting SO_REUSEADDR option");
         close(sock);
-        return -1;
+        *error = 1;
+        return server;
     }
 
     // Creating socket address
@@ -45,22 +43,68 @@ int http_server_init(http_server *server, int port) {
     // Binding the socket
     int bind_result = bind(sock, (struct sockaddr *)&address, sizeof(address));
     if (bind_result < 0) {
-        return -1;
+        *error = 1;
+        return server;
     }
 
     int listen_result = listen(sock, 10);
     if (listen_result < 0) {
-        return -1;
+        *error = 1;
+        return server;
     }
-    printf("[INFO] Server listening on port %d\n", port);
+    printf("[INFO] Server listening on port %zu\n", port);
 
-    *server = (http_server){.port = port, .routes = NULL, .server_fd = sock};
+    server = (http_server){
+        .port = port, .routes = NULL, .server_fd = sock, ._arena = {0}};
 
+    current_server = server;
+    return server;
+}
+
+void http_server_free(http_server server) { arena_free(&server._arena); }
+
+// --------------------
+// Server configuration
+// --------------------
+
+int http_server_add_route(http_server *server, const char *path,
+                          http_method method,
+                          void (*handler)(Arena *a, http_req, http_res *)) {
+    route *new_route = arena_alloc(&server->_arena, sizeof(route));
+    *new_route = (route){
+        path,
+        method,
+        handler,
+        NULL,
+    };
+
+    if (new_route == NULL)
+        return -1;
+
+    route *current = server->routes;
+    if (current == NULL) {
+        server->routes = new_route;
+    } else {
+        while (current->next != NULL)
+            current = current->next;
+        current->next = new_route;
+    }
+
+    printf("[INFO] Added route %s to server\n", path);
     return 0;
 }
 
-http_res *_http_server_get_res(Arena *a, http_server server, http_req req) {
+// --------------
+// Server runtime
+// --------------
+
+static http_res *_http_server_get_res(Arena *a, http_server server,
+                                      http_req req) {
     http_res *res = arena_alloc(a, sizeof(http_res));
+
+    res->body = "";
+    res->content_type = "";
+
     route *current = server.routes;
     bool route_found = false;
 
@@ -74,27 +118,22 @@ http_res *_http_server_get_res(Arena *a, http_server server, http_req req) {
         current = current->next;
     }
 
-    if (!route_found) {
-        http_res_not_found(res);
-    }
+    if (!route_found)
+        http_res_not_found(a, res);
+
     return res;
 }
 
-void _http_server_sigint_handler(int signo) {
+static void _http_server_sigint_handler(int signo) {
     (void)signo;
     printf("[INFO] Closing server\n");
-    close(current_server->server_fd);
+    close(current_server.server_fd);
     exit(0);
 }
 
-typedef struct {
-    int client_fd;
-    http_server server;
-} thread_args;
-
-void *_handle_client(void *args) {
+static void *_handle_client(void *args) {
+    Arena a = {0};
     char req_buffer[BUFFER_LEN + 1] = {0};
-    char res_buffer[BUFFER_LEN + 1] = {0};
 
     thread_args t = *((thread_args *)args);
     int bytes_recieved = recv(t.client_fd, req_buffer, BUFFER_LEN - 2, 0);
@@ -105,9 +144,14 @@ void *_handle_client(void *args) {
         return NULL;
     }
 
-    Arena a = {0};
+    int parse_error = 0;
+    http_req req = http_req_parse(&a, req_buffer, &parse_error);
 
-    http_req req = http_req_parse(&a, req_buffer);
+    if (parse_error != 0) {
+        fprintf(stderr, "Could not parse request\n");
+        return NULL;
+    }
+
     char *req_str = http_req_stringify(&a, req);
 
     printf("[INFO] Recieved req: %s\n", req_str);
@@ -119,24 +163,21 @@ void *_handle_client(void *args) {
 
     if (write_result < 0) {
         close(t.client_fd);
-        close(t.server.server_fd);
         return NULL;
     }
 
-    arena_free(&a);
     close(t.client_fd);
+    arena_free(&a);
     return NULL;
 }
 
 int http_server_start(http_server server) {
-    current_server = &server;
-
     if (signal(SIGINT, _http_server_sigint_handler) == SIG_ERR) {
         perror("Error setting up signal handler");
         exit(EXIT_FAILURE);
     }
 
-    printf("[INFO] Server started on http://localhost:%d\n", server.port);
+    printf("[INFO] Server started on http://localhost:%zu\n", server.port);
 
     while (true) {
         int client_fd = accept(server.server_fd, (struct sockaddr *)NULL, NULL);
@@ -144,40 +185,10 @@ int http_server_start(http_server server) {
         pthread_t thread;
         thread_args t = (thread_args){client_fd, server};
         pthread_create(&thread, NULL, _handle_client, (void *)&t);
-        pthread_detach(thread);
+        pthread_join(thread, NULL);
     }
 
     printf("[INFO] Closing server");
     close(server.server_fd);
-    return 0;
-}
-
-int http_server_add_route(http_server *server, const char *path,
-                          http_method method,
-                          void (*handler)(Arena *a, http_req, http_res *)) {
-    route *new_route = calloc(1, sizeof(route));
-
-    if (new_route == NULL) {
-        return -1;
-    }
-
-    new_route->path = path;
-    new_route->handler = handler;
-    new_route->next = NULL;
-    new_route->method = method;
-
-    if (server->routes == NULL) {
-        server->routes = new_route;
-    } else {
-        route *current = server->routes;
-
-        while (current->next != NULL) {
-            current = current->next;
-        }
-
-        current->next = new_route;
-    }
-
-    printf("[INFO] Added route %s to server\n", path);
     return 0;
 }

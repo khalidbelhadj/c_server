@@ -2,31 +2,41 @@
 
 #include "../../src/http_server.h"
 
-void hello(Arena *a, http_res *res) { http_res_file(a, res, "hello.html"); }
+void hello(Arena *a, http_req req, http_res *res) {
+    (void)req;
+    http_res_file(a, res, "hello.html");
+}
 
-void bye(Arena *a, http_res *res) { http_res_file(a, res, "bye.html"); }
+void bye(Arena *a, http_req req, http_res *res) {
+    (void) req;
+    http_res_file(a, res, "bye.html");
+}
 
-void home(Arena *a, http_res *res) { http_res_file(a, res, "index.html"); }
+void home(Arena *a, http_req req, http_res *res) {
+    (void) req;
+    http_res_file(a, res, "index.html");
+}
 
 int main(int argc, char **argv) {
     if (argc != 2) {
         fprintf(stderr, "[ERROR] Port not provided\n");
         printf("usage:\n");
         printf("    ./main <port>\n");
-        exit(1);
+        return 1;
     }
 
     char *end;
-    int port = strtod(argv[1], &end);
+    size_t port = strtod(argv[1], &end);
 
-    http_server server = {0};
+    int error = 0;
+    http_server server = http_server_new(port, &error);
+    if (error != 0) {
+        fprintf(stderr, "[ERROR] Could not create a server on port %zu\n",
+                port);
+        exit(1);
+    }
 
     {
-        if (http_server_init(&server, port) < 0) {
-            fprintf(stderr, "[ERROR] Could not initialise server: %s\n",
-                    strerror(errno));
-            exit(1);
-        }
 
         if (http_server_add_route(&server, "/hello", HTTP_GET, &hello) < 0) {
             fprintf(stderr, "[ERROR] Could not add route /hello to server\n");
